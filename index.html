@@ -1,73 +1,118 @@
 <!DOCTYPE html>
-
 <html lang="en">
 
 <head>
   <meta charset="utf-8" />
-
-  <!-- Give the page a title -->
   <title>Ramallah Waste Containers</title>
 
-  <!-- Add a link to the Leaflet CSS library so you can reference it for styling your map -->
+  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" />
 
-  <!-- All the CSS code goes inside the style tags below -->
   <style>
-    /* style the body */
+    /* body style */
     body {
-      margin: 0px;
+      margin: 0;
       height: 100%;
       width: 100%;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      color: white;
     }
 
-    /* style the map */
+    /* map style */
     #map {
       position: absolute;
       width: 100%;
-      top: 0px;
+      top: 0;
       bottom: 0;
+      z-index: 1;
+    }
+
+    /* clock and date container */
+    #datetime {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.6);
+      color: #fff;
+      padding: 8px 20px;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: bold;
+      z-index: 1000;
+      text-align: center;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+    }
+
+    #time {
+      font-size: 20px;
+      letter-spacing: 1px;
+    }
+
+    #date {
+      font-size: 14px;
+      opacity: 0.9;
     }
   </style>
 </head>
 
 <body>
-  <!-- the map -->
+  <!-- Date and Time Display -->
+  <div id="datetime">
+    <div id="time">00:00:00</div>
+    <div id="date">YYYY-MM-DD</div>
+  </div>
+
+  <!-- Map container -->
   <div id="map"></div>
 
-  <!-- Add a link to the Leaflet JavaScript library so you can reference it for building your map -->
+  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
-
-  <!-- Add a link to the jQuery JavaScript library so you can leverage ajax methods to load your data -->
+  <!-- jQuery -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 
-  <!-- All JavaScript goes inside the script tags below -->
   <script>
-    // define map options
+    // --- Function to update date and time ---
+    function updateDateTime() {
+      const now = new Date();
+      const time = now.toLocaleTimeString("en-GB"); // 24-hour format
+      const date = now.toLocaleDateString("en-GB", {
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+      });
+      document.getElementById("time").textContent = time;
+      document.getElementById("date").textContent = date;
+    }
+
+    // Update every second
+    setInterval(updateDateTime, 1000);
+    updateDateTime();
+
+    // --- Map setup ---
     const mapOptions = {
-      zoomSnap: 0.5,  // this allows fractional zooming
-      center: [31.9045, 35.2045], // center the map on the coordinates for Ramallah
-      zoom: 17.5, // set the initial zoom
+      zoomSnap: 0.5,
+      center: [31.9045, 35.2045],
+      zoom: 17.5
     };
 
-    // define the map with the options above
     const map = L.map("map", mapOptions);
 
-// add a base map to the map
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-  subdomains: 'abcd',
-  maxZoom: 20
-}).addTo(map);
+    // Base map
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> | © <a href="https://carto.com/attributions">CARTO</a>',
+      subdomains: 'abcd',
+      maxZoom: 20
+    }).addTo(map);
 
+    // Define layers first so they can be added to controls
+    let zonesLayer;
+    let wasteContainersLayer;
 
-// use jquery to load GeoJSON data
-
-
-    // STEP 1
-
-   $.getJSON("RamallahZones.json", function(RZ) {
-      L.geoJson(RZ, {
-        style: function(feature) {
+    // Load Ramallah Zones
+    $.getJSON("RamallahZones.json", function (RZ) {
+      zonesLayer = L.geoJson(RZ, {
+        style: function (feature) {
           return {
             fillColor: "yellow",
             fillOpacity: 0.3,
@@ -75,24 +120,19 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             weight: 1.0,
             opacity: 0.7
           };
-        // STEP 2
-
-          },
-        onEachFeature: function(feature, layer) {
-          layer.on('click', function(e) {
-          alert("Zone: " + feature.properties.NAME_ENGLI + "\nMAIL_CODE: " + feature.properties.MAIL_CODE);
+        },
+        onEachFeature: function (feature, layer) {
+          layer.on('click', function (e) {
+            alert("Zone Name: " + feature.properties.NAME);
           });
         }
       }).addTo(map);
     });
 
-
-
-    // STEP 4
-
-    $.getJSON("wasteContainer.json", function(WC) {
-      L.geoJson(WC, {
-        pointToLayer: function(feature, latlng) {
+    // Load Waste Containers
+    $.getJSON("wasteContainer.json", function (WC) {
+      wasteContainersLayer = L.geoJson(WC, {
+        pointToLayer: function (feature, latlng) {
           return L.circleMarker(latlng, {
             radius: 5,
             fillColor: "orange",
@@ -101,35 +141,20 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             opacity: 1,
             fillOpacity: 0.8
           });
-
-          },
-        onEachFeature: function(feature, layer) {
-          layer.on('click', function(e) {
-          alert("الاسم" + feature.properties.NAME_ENGLI + "\TYPE_OF_WA "
-          });
         }
       }).addTo(map);
     });
 
-
-      }).addTo(map);
-    });
-// STEP 5
-
-    // Add layers to map with control options
-    const baseLayers = {};
-    const overlays = {
-      "Zones": zonesLayer,
-      "Waste Containers": wasteContainersLayer
-    };
-
-    // Add layer control to the map
-    L.control.layers(baseLayers, overlays).addTo(map);
-
-    // Add both layers to the map by default
-    zonesLayer.addTo(map);
-    wasteContainersLayer.addTo(map);
+    // Wait for both layers before adding controls
+    setTimeout(() => {
+      const baseLayers = {};
+      const overlays = {
+        "Zones": zonesLayer,
+        "Waste Containers": wasteContainersLayer
+      };
+      L.control.layers(baseLayers, overlays).addTo(map);
+    }, 1000);
   </script>
 </body>
-
 </html>
+
